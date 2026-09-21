@@ -1,0 +1,12 @@
+# Secrets and machine-local state. Never commit these.
+.env
+mcp.json
+mcp.json.lock
+sessions/
+terminal-sessions/
+cache/
+*.db
+*.db-shm
+*.db-wal
+last-changelog-version
+.DS_Store

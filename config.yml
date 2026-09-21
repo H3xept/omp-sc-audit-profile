@@ -1,0 +1,146 @@
+setupVersion: 2
+
+# Main agent: Kimi K3 at max thinking.
+modelRoles:
+  default: openrouter/moonshotai/kimi-k3:max
+  slow: openrouter/moonshotai/kimi-k3:max
+  smol: openrouter/z-ai/glm-5.3:high
+  tiny: openrouter/deepseek/deepseek-v4-flash-0731:low
+  commit: openrouter/openai/gpt-5.6-luna:medium
+  advisor: openrouter/deepseek/deepseek-v4-flash-0731:high
+  task: anthropic/claude-opus-5:high
+  kimi: openrouter/moonshotai/kimi-k3:max
+modelTags:
+  kimi:
+    tag: KIMI
+    name: Kimi K3
+    color: accent
+modelProviderOrder:
+  - openrouter
+  - anthropic
+cycleOrder:
+  - smol
+  - default
+  - task
+defaultThinkingLevel: high
+
+providers:
+  webSearchOrder:
+    - exa
+    - perplexity
+    - gemini
+    - anthropic
+    - xai
+    - jina
+    - kagi
+    - tavily
+    - brave
+    - duckduckgo
+    - google
+
+retry:
+  enabled: true
+  modelFallback: true
+  usageAwareFallback: true
+  fallbackChains:
+    openrouter/moonshotai/kimi-k3:
+      - openrouter/moonshotai/kimi-k2-thinking
+      - anthropic/claude-opus-5
+
+compaction:
+  enabled: true
+  midTurnEnabled: true
+  thresholdTokens: 200000
+  keepRecentTokens: 48000
+  supersedeReads: true
+  dropUseless: true
+  autoContinue: true
+
+task:
+  batch: true
+  eager: preferred
+  enableEffort: true
+  maxEffort: high
+  maxConcurrency: 32
+  showResolvedModelBadge: true
+  agentModelOverrides:
+    sonic: openrouter/deepseek/deepseek-v4-flash-0731:medium
+    scout: openrouter/z-ai/glm-5.3-flash:high
+    reviewer: anthropic/claude-opus-5:high
+    security-reviewer: anthropic/claude-opus-5:high
+    plan-critic: openai-codex/gpt-5.6-sol:high
+    invariant-engineer: anthropic/claude-opus-5:high
+    fuzz-triage: openrouter/moonshotai/kimi-k3:max
+  disabledAgents:
+    []
+
+todo:
+  enabled: true
+  eager: preferred
+edit:
+  mode: hashline
+read:
+  defaultLimit: 300
+  renderMarkdown: true
+  summarize:
+    prose: true
+lsp:
+  formatOnWrite: false
+browser:
+  headless: true
+memory:
+  backend: "off"
+extendedContext: false
+includeWorkspaceTree: false
+inlineToolDescriptors: auto
+personality: pragmatic
+interruptMode: immediate
+doubleEscapeAction: tree
+hideThinkingBlock: false
+colorBlindMode: false
+
+skills:
+  ignoredSkills:
+    - smithers
+    - smithers-*
+    - slack-*
+    - block-kit
+    - create-slack-app
+    - parallel-implement
+    - worktree-workflow
+    - aspire
+    - aspire-*
+    - aspireify
+    - use-railway
+    - yukon-cli
+    - context7-mcp
+    - terminal-browser
+    - system-atlas
+    - wizard
+    - prototype
+    - domain-modeling
+    - codebase-design
+
+theme:
+  dark: dark-tokyo-night
+composer:
+  shape: band
+statusLine:
+  sessionAccent: true
+  transparent: false
+  compactThinkingLevel: false
+  showHookStatus: true
+terminal:
+  showProgress: true
+tui:
+  textSizing: false
+  hyperlinks: auto
+  imeSafeCursor: false
+display:
+  shimmer: kitt
+  showTokenUsage: true
+  cacheMissMarker: true
+error:
+  notify: "off"
+enabledProviders:
+  []

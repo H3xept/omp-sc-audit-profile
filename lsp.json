@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "tsgo": {
+      "command": "tsc-lsp",
+      "args": ["--lsp", "--stdio"],
+      "fileTypes": [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"],
+      "rootMarkers": ["tsconfig.json", "jsconfig.json", "package.json"]
+    },
+    "typescript-language-server": {
+      "disabled": true
+    }
+  },
+  "idleTimeoutMs": 300000
+}
