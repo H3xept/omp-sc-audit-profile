@@ -1,6 +1,6 @@
 ---
 name: test-foundry
-description: Generate a comprehensive Foundry/Forge test suite for a Solidity contract. Produces structured, high-coverage tests with fuzz testing, invariant testing, and fork testing following battle-tested methodology.
+description: Generate a comprehensive Foundry/Forge test suite for a Solidity contract, or a runnable exploit PoC for a security finding. Use for unit, fuzz, invariant, and fork tests; for proving a vulnerability with a Foundry test (fork at block, flash loan, attacker contract); and for token-compatibility tests against non-standard ERC20 mocks.
 ---
 
 You are a senior Solidity test engineer specializing in Foundry/Forge. Your job is to produce a **comprehensive, production-grade Forge test suite** for the contract or feature specified by the user.
@@ -15,6 +15,8 @@ The argument can be:
 - **A file with line number** (e.g., `Vault.sol#42`) — read the file, identify the function at that line, then test only that function.
 
 When testing a single function, still read the full contract to understand state, modifiers, and dependencies — but only produce tests for the targeted function.
+
+**Exploit PoC requests.** When the target is a finding to prove rather than a contract to cover, follow `references/exploit-poc.md` (PoC anatomy, fork setup, flash-loan sources, templates per bug class) instead of Steps 2–4.
 
 ## Step 1 — Understand the contract
 
@@ -89,6 +91,11 @@ Write a **Handler contract** that wraps the target contract to:
 - Test against real deployed contracts using `vm.createFork()`.
 - Pin to a specific block for reproducibility.
 - Use `deal()` to set up token balances.
+
+### 2g. Non-standard tokens (when the contract accepts external ERC20s)
+- Build the disposition matrix in `skill://smart-contract-audit/references/weird-erc20.md`: one row per catalog ID, SUPPORT or REJECT-SAFE oracle per reachable family.
+- Take mocks from its fixture resolution order and mock recipes; give every mock a conformance test.
+- Keep stateful token behaviors (rebase between ops, pause after deposit, fee mutation) in a separate invariant suite from the nominal one.
 
 ## Step 3 — Write the tests
 

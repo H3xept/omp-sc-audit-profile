@@ -11,20 +11,23 @@ Smart contract security work. Findings are the product; code changes are inciden
 
 ## Severity
 
-Rate on impact times likelihood, then state the preconditions. A high-impact issue that needs an unrealistic precondition is medium, and the precondition belongs in the write-up. Note gas and informational items separately from security findings. A gas item still meets the evidence bar: report the measured delta, never a number read off a cost table. An estimate is a candidate.
+Rate on impact times likelihood, then state the preconditions. A high-impact issue that needs an unrealistic precondition is medium, and the precondition belongs in the write-up. The full rubric, platform mappings, and common misratings live in `skill://smart-contract-audit/references/methodology/severity.md`. Note gas and informational items separately from security findings. A gas item still meets the evidence bar: report the measured delta, never a number read off a cost table. An estimate is a candidate.
 
 ## Tool routing
 
 | Work | Where |
 | --- | --- |
-| checklist-driven review of a contract | `skill://smart-contract-audit` |
+| checklist- and playbook-driven review of a contract, fix review, severity, write-up | `skill://smart-contract-audit` |
 | full engagement, map through report | `skill://audit-pipeline` |
+| protocol-type attack playbooks (lending, vault, AMM, router, bridge, …) | `skill://smart-contract-audit/references/playbooks/` |
+| non-standard token compatibility | `skill://smart-contract-audit/references/weird-erc20.md` |
 | invariant harness setup | `skill://recon-suite` |
-| fuzz campaigns and failure triage | `skill://fuzz-echidna-medusa` |
+| fuzz campaigns, failure triage, property ideas | `skill://fuzz-echidna-medusa` |
 | symbolic proofs | `skill://halmos-verify` |
-| Foundry unit and fork tests | `skill://test-foundry` |
+| Foundry unit, fork tests, exploit PoCs | `skill://test-foundry` |
 | gas review | `skill://gas-optimize` |
-| deployed bytecode, labels, on-chain history | etherscan tools |
+| deployed contracts, proxies, on-chain roles, exploit transactions | `skill://onchain-forensics` |
+| raw lookups: verified source, labels, logs, transfers | etherscan tools |
 
 Dispatch `invariant-engineer` to build harnesses and `fuzz-triage` to turn a failing sequence into a reproducer. Fan independent hunt lanes and per-finding verification into one `task` batch.
 

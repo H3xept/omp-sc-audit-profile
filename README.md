@@ -74,11 +74,12 @@ The pipeline relies on `forge` and the scanners instead.
 | Skill | Role |
 | --- | --- |
 | `audit-pipeline` | The orchestrator. Phased audit with per-phase prompts under `assets/prompts/` |
-| `smart-contract-audit` | Checklist-driven review over a 370-item Solidity checklist |
+| `smart-contract-audit` | Checklist- and playbook-driven review: the vendored Cyfrin `SOL-` checklist plus profile `AUD-` categories, protocol playbooks, methodology, and the weird-ERC20 catalog under `references/` |
 | `recon-suite` | Static analysis and surface mapping: slither, aderyn, storage layout |
-| `fuzz-echidna-medusa` | Property fuzzing setup and campaign running |
+| `fuzz-echidna-medusa` | Property fuzzing setup and campaign running, with a per-protocol property catalog under `references/` |
 | `halmos-verify` | Symbolic verification of bounded properties |
-| `test-foundry` | Foundry test suite generation, including fuzz and invariant tests |
+| `test-foundry` | Foundry test suite generation, including fuzz and invariant tests; exploit PoC templates per bug class under `references/` |
+| `onchain-forensics` | Deployed-contract inspection: proxy state, bytecode-vs-build diffing, on-chain role enumeration, incident transaction analysis. Ships `cast`-based scripts |
 | `gas-optimize` | Gas analysis with snapshot-backed before/after numbers |
 | `exec-plan` | Writes the self-contained execution plan for a change |
 | `refine-plan` | Audits an execution plan for gaps and dead references |

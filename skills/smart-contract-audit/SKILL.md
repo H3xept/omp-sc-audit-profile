@@ -1,142 +1,130 @@
 ---
 name: smart-contract-audit
-description: Systematic Solidity smart contract security audit using a 370-item checklist spanning 13 categories (attack patterns, DeFi, integrations, tokens, cross-chain, signatures, etc.). Use whenever the user asks to audit, review, find bugs in, or assess the security of Solidity/EVM smart contracts, or mentions solidit, slither findings, Code4rena/Sherlock/Cyfrin style review, reentrancy, oracle manipulation, access control review, or wants a checklist-driven review of a protocol. Trigger even when the user only provides a contract file and asks "is this safe?" or "any issues?".
+description: Checklist- and playbook-driven security review of Solidity/EVM smart contracts. Use when asked to audit, review, find bugs in, or assess the security of a contract or protocol (lending, AMM, vault, staking, bridge, router, governance, perps, NFT, account abstraction, proxies); when a single file arrives with "is this safe?"; when reviewing a fix or PR diff; when rating a finding's severity or writing it up; or when checking token compatibility (fee-on-transfer, rebasing, weird ERC20).
 ---
 
 # Smart Contract Security Audit
 
-Drive a rigorous, checklist-anchored security review of Solidity/EVM smart contracts. The checklist is a curated distillation of real findings from Solodit (Code4rena, Sherlock, Cyfrin, Spearbit, etc.). Do not improvise a freestyle review — anchor every finding in an item id from the checklist so the user can trace your reasoning to prior art.
+A single-auditor review anchored in three bodies of reference: the checklist (vendored Cyfrin `SOL-` items plus profile-authored `AUD-` items), the protocol playbooks, and the methodology files. Every finding cites the checklist id, playbook bug class, or catalog ID it came from, so the reader can trace the reasoning to prior art. For a whole-repo engagement with parallel lanes and proof gates, use `skill://audit-pipeline`; it draws on the same references.
 
-## Why checklist-driven
-
-Ad-hoc reviews miss classes of bugs the reviewer hasn't personally seen before. The checklist encodes hundreds of real exploits by pattern. Walking it beats intuition, especially on categories adjacent to the reviewer's blind spots (e.g., a DeFi-native reviewer auditing a cross-chain bridge).
-
-The full checklist is 370 items — too large to hold in working memory. It is split per category under `references/`. Load only the files relevant to the contract's scope. Do not preload everything.
+`references/INDEX.md` is the map of everything below. Load reference files on demand; the full set is far larger than working memory.
 
 ## Workflow
 
-### 1. Scope the contract
+### 1. Threat model
 
-Before touching the checklist, read the source to answer:
+Follow `references/methodology/threat-model.md`. For a single small contract, compress it to these answers:
 
-- What does the protocol do in one sentence? (lending? AMM? staking? bridge? NFT mint? vault?)
-- Which external systems does it touch? (Chainlink, Uniswap, LayerZero, ERC4626, Pendle, Aave, Curve, Balancer, GMX, Morpho, etc.)
-- Which token standards? (ERC20 with fee-on-transfer? rebasing? ERC721? ERC1155? ERC4626?)
-- Privileged roles and upgradeability pattern?
-- Chains targeted (L1 only, L2, multi-chain)?
-- Every `external` and `public` function — list them. Access-control gaps hide here.
+- What the protocol does in one sentence, and which assets it holds.
+- Every actor and what each can move: users, liquidators, keepers, oracles, admin roles, governance, external protocols, MEV searchers.
+- Every `external`/`public` function with its caller, the state it writes, the value it moves, and its external calls. Access-control gaps hide in this table.
+- External systems touched (Chainlink, Uniswap, LayerZero, Aave, Permit2, …), token standards and token sources (fixed protocol tokens vs user-supplied addresses), upgradeability, and target chains.
+- The invariants, as falsifiable sentences.
 
-**Protocol-specific pattern prompts (check during scoping):**
+Done when the entry-point table lists every external/public function in scope and every invariant has an id. State the threat model back to the user in 3–8 bullets.
 
-- **Lending/borrowing**: Does `liquidate()` require the liquidator to actually repay debt? Does the health-factor calculation normalize token decimals before comparing collateral value to debt value?
-- **Oracle consumers**: Is `latestAnswer()` used instead of `latestRoundData()`? If so, there is no staleness check. Is the oracle return value cast from `int256` to `uint256` without a negative-value guard? Do oracle prices use 8 decimals while token amounts use 18 — is the mismatch handled?
-- **Vaults / reward accounting**: Is pending reward zeroed when a user's balance changes before the pending amount is credited?
-- **Privileged functions**: Does every admin function have an explicit `require(msg.sender == owner)` or role check? Is ownership transfer one-step (dangerous) or two-step?
+### 2. Select references
 
-State scoping findings back to the user in 3–6 bullets. This drives which reference files to load.
+Read `references/INDEX.md`, then load:
 
-### 2. Pick the relevant reference files
-
-Read `references/INDEX.md` first for the category map. Then load only what the scope justifies:
-
-| Always load | For every audit |
+| Always | Why |
 |---|---|
-| `attacker-s-mindset.md` | DOS, front-running, donation, sandwich, reentrancy framing |
-| `basics.md` | Access control, arithmetic, storage, initialization, general Solidity pitfalls (largest file — 135 items) |
-| `heuristics.md` | Smell-level patterns worth a second look |
+| `attacker-s-mindset.md`, `basics.md`, `heuristics.md` | Cross-cutting bug classes every protocol has |
+| `methodology/severity.md` | The one severity rubric |
 
-| Load when scope matches | Trigger |
+| When the threat model shows… | Load |
 |---|---|
-| `defi.md` | AMM, lending, vaults, yield, liquidations, oracle pricing, slippage |
-| `token.md` | Custom ERC20/721/4626, fee-on-transfer, rebasing, hooks |
-| `integrations.md` | Uniswap/Curve/Balancer/Aave/Chainlink/LayerZero/etc. specific pitfalls |
-| `external-call.md` | Any low-level `call`, callbacks, router patterns |
-| `signature.md` | EIP-712, permit, meta-tx, off-chain signed orders |
-| `hash-merkle-tree.md` | Merkle airdrops, commit-reveal, allowlists |
-| `multi-chain-cross-chain.md` | Bridges, cross-chain messaging, same code on multiple chains |
-| `low-level.md` | Inline assembly, raw storage, delegatecall |
-| `centralization-risk.md` | Admin powers, upgradeability, timelock absence |
-| `timelock.md` | Timelock governance |
+| A protocol type (lending, vault, AMM, router, bridge, …) | Every matching `playbooks/<type>.md` — a protocol can match several |
+| A proxy, initializer, or diamond | `upgradeability.md` |
+| Inline assembly, transient storage, low-level calls, a non-default compiler setup | `evm-compiler.md`, `low-level.md` |
+| Deployment on an L2 or alt-EVM chain | `chain-specific.md`, `multi-chain-cross-chain.md` |
+| User-supplied calldata, routers, multicall, held approvals, Permit2 | `arbitrary-calls-approvals.md`, `external-call.md` |
+| Smart accounts, ERC-4337, EIP-7702, ERC-1271, Safe modules | `account-abstraction.md`, `signature.md` |
+| ERC-20s from user input, a listing process, or external dependencies | `weird-erc20.md`, `token.md` |
+| Category-specific scope (DeFi math, integrations, signatures, merkle, timelock, centralization) | The matching vendored category file |
 
-Tell the user which files you chose to load and why. If unsure, err on loading more.
+Name the files you loaded and the code shape that triggered each. When unsure, load the file.
 
-### 3. Walk the checklist
+### 3. Hunt
 
-For each loaded file, go through items in order. For each item:
+1. **Playbooks first.** For each loaded playbook, check every core invariant and work every bug class against the code: answer its question with file:line evidence.
+2. **Checklist walk.** For each loaded checklist file, take items in order. Quote the id and question, then decide **applicable & OK**, **applicable & issue**, or **not applicable (reason)**. A one-line reason accompanies every dismissal; silent skips are how bugs hide. Say so when an item is ambiguous for this codebase.
+3. **Token matrix.** When `weird-erc20.md` is loaded, build its disposition matrix — one row per catalog ID — and treat every TEST row whose oracle fails as an issue.
+4. **Outside the lists.** The references are a floor. Report what they miss as "outside checklist"; check `methodology/exploit-casebook.md` for precedent of the same class.
 
-1. Quote the item id and the question.
-2. Decide one of: **applicable & OK**, **applicable & issue**, **not applicable (reason)**.
-3. If issue: point to file + line, explain the exploit path in plain terms, cite the item id. Do not dump the stored reference URLs unless the user asks — they are for your grounding, not output noise.
-4. If not applicable: give a one-line reason so the user can sanity-check the dismissal.
+Static-analysis output (slither, aderyn) is an anchor for manual review, triaged per `methodology/static-analysis-triage.md`, never a finding on its own.
 
-Do not skip items silently. Silent skips are how bugs hide. If an item is ambiguous for the codebase, say so.
+Done when every loaded playbook bug class and every loaded checklist item has a recorded outcome.
 
-### 4. Report
+### 4. Prove
 
-**Always write the report to a markdown file, never to the terminal.** Determine the output path as follows:
+Every Critical and High gets a runnable Foundry PoC built from `skill://test-foundry/references/exploit-poc.md`, run with `forge test`, and failing on the current code in the way the finding claims. Medium and below get a PoC when it is cheap, and a precise attack path otherwise. A finding without a passing proof is labelled a **candidate** in the report, per the evidence bar in `AGENTS.md`. When no Foundry project exists and none can be created, write the numbered attack sequence with concrete values and label the finding a candidate.
 
-- If the user specified a path (e.g., "write to `reports/foo.md`"), use that path.
-- If the contracts live under a named project directory (e.g., `spark/`, `protocol/`), write to `<project-dir>/audit-report.md`.
-- Otherwise, write to `audit-report.md` in the current working directory.
+### 5. Report
 
-After writing the file, print one line to the terminal: `Report written to <path>` — nothing else.
+Write the report to a markdown file, never to the terminal:
 
-The report structure:
+- The user's path when they named one.
+- `<project-dir>/audit-report.md` when the contracts live under a named project directory.
+- `audit-report.md` in the current working directory otherwise.
+
+Then print one line: `Report written to <path>`.
+
+Rate severity with `methodology/severity.md`; write each finding per `methodology/report-writing.md`. Structure:
 
 ```markdown
-# Audit Report: <contract name>
+# Audit Report: <contract or protocol name>
 
 **Date:** <YYYY-MM-DD>
-**Auditor:** Claude (checklist-driven, Solodit-anchored)
-**Checklist version:** 370 items across 13 categories
-
----
+**Commit:** <hash, or "uncommitted">
+**Method:** checklist + playbooks (<loaded files>)
 
 ## Scope
-<1–2 paragraphs — what the contract does, what was in/out of scope>
+<what the code does, files in and out of scope, trust assumptions>
 
-## Checklist coverage
-- Categories walked: <list>
-- Items reviewed: <count>
-- Items not applicable: <count>
+## Threat model
+<actors, assets, entry points, invariants with ids>
+
+## Coverage
+- Playbooks worked: <list>
+- Checklist files walked: <list> — items reviewed <n>, not applicable <n>
+- Token matrix: <path, or "not applicable: no external tokens">
 
 ## Findings
 
-### [Severity] <title>  (ref: SOL-XX-YY-N)
+### [Severity] <title: root cause + impact>  (ref: <SOL-/AUD- id, playbook class, or catalog ID>)
 
 - **Location:** `File.sol:123`
-- **Impact:** <what an attacker gains or what users lose>
-- **Exploit path:** <concrete step-by-step description — name specific functions, values, and ordering>
-- **Proof of Concept:** <for Critical and High: a minimal Solidity attack contract OR a numbered on-chain action sequence showing exactly how the exploit executes>
-- **Recommendation:** <specific fix tied to checklist remediation, with a corrected code snippet showing the before/after diff>
+- **Status:** proven (PoC: `<test path>`) | candidate
+- **Impact:** <what the attacker gains or users lose, quantified>
+- **Preconditions:** <what must hold>
+- **Attack path:** <numbered steps naming functions and values>
+- **Proof of Concept:** <runnable Foundry test, or the numbered sequence for a candidate>
+- **Recommendation:** <fix with a before/after code snippet>
 
-## Informational
+## Informational and gas
 
 | # | Location | Note |
 |---|---|---|
-| I-1 | `File.sol:line` | brief note |
 
 ## Acknowledged non-issues
-<items worth noting you checked and cleared, so the reader trusts coverage>
+<items checked and cleared, with the reason>
 
 ## Open questions for the developer
-<ambiguous items that need protocol-author input>
+<ambiguities that need the protocol author>
 ```
 
-Severity rubric: **Critical** = direct loss of funds, no preconditions. **High** = loss of funds with realistic preconditions. **Medium** = griefing, temporary DOS, value leak. **Low** = code quality, unlikely edge cases. **Informational** = style, gas, no security impact.
+## Fix and diff review
 
-**PoC standard:** For Critical and High, the Proof of Concept must be specific enough that a developer can reproduce it in a test. Prefer a Foundry-style test skeleton or a numbered attack sequence over vague prose. For Medium/Low, a brief description of the edge case is sufficient — no full PoC required.
+When the input is a PR, a diff, or a fix for a reported finding, follow the diff-review procedure in `methodology/threat-model.md`. Re-run the original PoC against the fix: it passes on the fixed code and fails on the old code.
 
 ## Guardrails
 
-- **Never invent item ids.** If you cite `SOL-XX-YY-N`, it exists in the loaded reference file. Cross-check before writing.
-- **Never claim "no issues found" after a partial walk.** If you only loaded 3 of 13 category files, say so explicitly in the report.
-- **Prefer concrete exploit paths over abstract warnings.** "Front-runnable" is weak; "Attacker observes tx in mempool, submits same call with higher gas, causing X" is actionable.
-- **The checklist is a floor, not a ceiling.** If you spot something not covered by any item, still report it — just mark it as "outside checklist" rather than faking an id.
-- **Always include PoC and fix.** For Critical and High findings, always produce a Proof of Concept (Foundry-style attack contract or numbered action sequence) and a corrected code snippet in the Recommendation. Do not wait for the user to ask. For Medium and below, include the fix snippet but the PoC can be a brief description instead of full code.
+- Cite only ids that exist in a loaded file. Prefix tells the source: `SOL-` vendored Cyfrin, `AUD-` profile-authored, `A1`–`J4` weird-ERC20 catalog.
+- Claim "no issues found" only for what you walked. A partial walk names the files left unwalked in Coverage.
+- Write concrete attack paths: name the transaction, the function, the values, and the ordering. "Front-runnable" alone is not a finding.
+- Claim only what the PoC proves.
 
-## When the user only gives you a file and says "audit this" / "is this safe?"
+## Terse prompts
 
-Start immediately with scoping (Step 1), announce the categories you'll load, then proceed. Do not ask clarifying questions before starting — the scoping step extracts the essentials from the code. Begin the checklist walk in the same response.
-
-Even on a terse prompt, always produce: full Scope section, all findings with Exploit path + PoC + Recommendation code snippet, Acknowledged non-issues, and Open questions for the developer.
+When the user gives only a file and "audit this" or "is this safe?", start the threat model immediately, announce the references you load, and continue through the report in the same response. The threat model extracts what clarifying questions would ask.

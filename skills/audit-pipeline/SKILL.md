@@ -65,7 +65,7 @@ The work directory is `<rootDir>/.sc-audit/` with `checkpoints/`, `raw/`, `pocs/
 
 ## Precedent lookups
 
-Precedent comes from `web_search` over public audit reports plus the vendored Cyfrin checklist in `skill://smart-contract-audit/references/`. Precedent is anchored: a lane searches only after it has named the contract, the function, and the bug family from the code. SETUP, MAP, and REPORT do no precedent lookups; HUNT, ATTACK, and VERIFY use them for corroboration and contrast.
+Precedent comes from `web_search` over public audit reports, the vendored Cyfrin checklist and the profile's `AUD-` categories in `skill://smart-contract-audit/references/`, and the incident catalog in `skill://smart-contract-audit/references/methodology/exploit-casebook.md`. Precedent is anchored: a lane searches only after it has named the contract, the function, and the bug family from the code. SETUP, MAP, and REPORT do no precedent lookups; HUNT, ATTACK, and VERIFY use them for corroboration and contrast.
 
 ## Risk patterns (reference)
 
@@ -122,7 +122,7 @@ One `task` item, `name: "Setup"`, `agent: "task"`, `effort: "med"` — the phase
 - **`outputSchema`:** `SetupSummary` — required keys `phase`, `timestamp`, `scope`, `slither`, `aderyn`, `storageLayout`, `checklist`, `warnings`.
 - **Artifacts on disk:** `.sc-audit/raw/slither-findings.json` (from `slither . --json ...`), `.sc-audit/raw/aderyn-findings.json` (from `aderyn . -o ...`), `.sc-audit/raw/storage-layout.json` (from `forge inspect <C> storage-layout --json` per in-scope contract), `.sc-audit/raw/checklist.json` (the scoped checklist manifest).
 
-**On return:** present finding counts by severity per tool, checklist status, and solc version. Both analysers failed → warn the user that the audit proceeds manual-only. One failed → name it and continue. `storageLayout.available = false` → say so: the `storage` and `upgrade` categories fall back to hand-tracing for the rest of the run.
+**On return:** present finding counts by severity per tool, checklist status, the selected playbooks with the code shape that matched each, and solc version. Both analysers failed → warn the user that the audit proceeds manual-only. One failed → name it and continue. `storageLayout.available = false` → say so: the `storage` and `upgrade` categories fall back to hand-tracing for the rest of the run.
 
 **Checkpoint:** `.sc-audit/checkpoints/setup.json`, then update the manifest.
 
@@ -157,7 +157,7 @@ Reload `checkpoints/map.json` first. All five lane items go in a single `tasks[]
 | `HuntTokenOracle` | `skill://audit-pipeline/assets/prompts/hunt-token-oracle-statefulness.md` | `token_oracle_statefulness` |
 | `HuntEconomic` | `skill://audit-pipeline/assets/prompts/hunt-economic-differential.md` | `economic_differential` |
 
-- **Batch `context`:** `rootDir`, `scopeFiles`, `checkpoints/map.json`, and the four `.sc-audit/raw/` artifact paths. `storage-layout.json` is the authority on slots, offsets, and byte widths — a lane reasoning about packing or upgrade collisions reads it rather than inferring from declaration order.
+- **Batch `context`:** `rootDir`, `scopeFiles`, `checkpoints/map.json`, and the four `.sc-audit/raw/` artifact paths. `storage-layout.json` is the authority on slots, offsets, and byte widths — a lane reasoning about packing or upgrade collisions reads it rather than inferring from declaration order. Every lane reads the playbooks listed in `checklist.json` `playbooks[]` and works each bug class that falls inside its lane; a class that maps to no lane goes to `semantic_consistency`. Static-analysis hits are triaged per `skill://smart-contract-audit/references/methodology/static-analysis-triage.md`.
 - **Per-item `task`:** read the lane's prompt file and follow it exactly.
 - **`outputSchema`:** `Hotspot[]` — each element requires `id`, `lane`, `title`, `priority`, `affected_files`, `affected_functions`, `evidence`, `candidate_attack_sequence`, `root_cause_hypothesis`. Those last four are ATTACK's input contract, so validating them here is what keeps Phase 4 dispatchable.
 
@@ -188,7 +188,7 @@ Reload `checkpoints/hunt.json`. One `task` call, one item per user-selected hots
 - **`outputSchema`:** `Finding` — required keys `id`, `title`, `severity`, `status`, `da_attack`, `exploit_sketch`.
 - **Proof requirement:** every confirmed vulnerability gets at least one attempted proof method. An unproven finding stays `status = "candidate"` with `proof_type = "none"` — it is demoted, not dropped.
 
-Proof mechanics live with the proof skills: fuzzing and symbolic runs in `skill://fuzz-echidna-medusa`, invariant scaffolds in `skill://recon-suite`. PoC files land in `.sc-audit/pocs/`, raw tool logs in `.sc-audit/raw/proof-<id>-<tool>.log`.
+Proof mechanics live with the proof skills: Foundry exploit templates and fork setup in `skill://test-foundry/references/exploit-poc.md`, fuzzing and symbolic runs in `skill://fuzz-echidna-medusa` (property shapes per protocol type in its `references/property-catalog.md`), invariant scaffolds in `skill://recon-suite`. PoC files land in `.sc-audit/pocs/`, raw tool logs in `.sc-audit/raw/proof-<id>-<tool>.log`.
 
 **On return:** confirm every expected `checkpoints/attack-<id>.json` exists, reloading any result missing from context.
 
@@ -217,7 +217,7 @@ Reload `checkpoints/verify-*.json` and apply "prove it or lose it".
 
 ## Phase 6: REPORT (inline)
 
-Build the report from the reloaded checkpoints, in five sections:
+Build the report from the reloaded checkpoints, in five sections. Severity values follow `skill://smart-contract-audit/references/methodology/severity.md`, and each finding's write-up follows `skill://smart-contract-audit/references/methodology/report-writing.md`.
 
 1. **Proved Findings** — `status = "verified"` with a successful proof (`proof_type != "none"`).
 2. **Confirmed (Unproven)** — `status = "judge_confirmed"`, or `verified` with `proof_type = "none"`. Strong evidence, no executable proof.

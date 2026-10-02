@@ -1,6 +1,6 @@
 ---
 name: fuzz-echidna-medusa
-description: Write and run stateful fuzzing campaigns with Echidna and Medusa against a Chimera/Recon tester. Use when adding invariant or property checks, writing echidna.yaml or medusa.json, starting or resuming a fuzz campaign, chasing low coverage, or turning a failing call sequence into a Foundry reproducer. Triggers on echidna, medusa, fuzz campaign, corpus, assertion mode, property mode, invariant_, failing sequence, shrink, trophy.
+description: Write and run stateful fuzzing campaigns with Echidna and Medusa against a Chimera/Recon tester. Use when adding invariant or property checks, choosing which properties a protocol type needs (ERC20, ERC4626, lending, AMM, staking, governance, bridge), writing echidna.yaml or medusa.json, starting or resuming a fuzz campaign, chasing low coverage, or turning a failing call sequence into a Foundry reproducer. Triggers on echidna, medusa, fuzz campaign, corpus, assertion mode, property mode, invariant_, failing sequence, shrink, trophy.
 ---
 
 # Echidna and Medusa campaigns
@@ -27,27 +27,28 @@ Confirm each item before writing config. A missing item wastes a campaign.
 | Function on the tester | Echidna (`testMode: assertion`) | Medusa | Foundry |
 | --- | --- | --- | --- |
 | target handler, e.g. `vault_deposit(uint256)` | called, asserts checked | called, asserts checked | callable |
-| `invariant_*` | called as an ordinary public function | runs after **every** transaction via `propertyTesting.testPrefixes` | callable |
+| `invariant_*` returning `bool`, no arguments | called as an ordinary public function | runs after **every** transaction via `propertyTesting.testPrefixes`; fails on `false` or on a revert inside it | callable |
 | `property_*` | called as an ordinary public function | called as an ordinary public function | callable |
 | `echidna_*` returning `bool` | property mode only | ignored | callable |
 | `optimize_*` | ignored | maximizes the return value when `optimizationTesting.enabled` | callable |
 
 Consequences worth internalizing:
 
-- `invariant_*` is the strongest placement: Medusa checks it after every call, Echidna checks it whenever it happens to call it. Put global truths there.
+- `invariant_*` is the strongest placement: Medusa checks it after every call, Echidna checks it whenever it happens to call it. Put global truths there. Medusa's property provider runs it only when it is declared `returns (bool)` with no arguments; a void `invariant_*` draws a startup warning and drops to an assertion test checked only when called. Assert through Chimera, then `return true`, so the same body fails under all three runners.
 - `property_*` and target handlers are checked only when called, so a property that must hold continuously belongs in `invariant_*`.
 - Asserting through Chimera's `Asserts` (`eq`, `gte`, `lte`, `t`) keeps one body working under all three runners, because `CryticAsserts` and `FoundryAsserts` bind the same calls to each runner's failure mechanism.
 
 ## Writing checks that catch real bugs
 
-Four check shapes carry nearly all value. Each one states a truth about the system, never a restatement of the implementation.
+Four check shapes carry nearly all value. Each one states a truth about the system, never a restatement of the implementation. For which truths a given protocol type needs — with ids, the bug each catches, and Chimera snippets — start from `references/property-catalog.md`; non-standard token behaviors take their oracles from `skill://smart-contract-audit/references/weird-erc20.md`.
 
 **Global invariant** — holds after every call, reads only public state:
 
 ```solidity
 // Properties.sol
-function invariant_solvency() public {
+function invariant_solvency() public returns (bool) {
     gte(asset.balanceOf(address(vault)), vault.totalAssets(), "vault undercollateralized");
+    return true;
 }
 ```
 
@@ -61,12 +62,13 @@ for (uint256 i = FIRST_UNUSED_SLOT; i < SLOT_COUNT; i++) {
 }
 
 // Properties.sol
-function invariant_unused_slots_untouched() public {
+function invariant_unused_slots_untouched() public returns (bool) {
     for (uint256 i = FIRST_UNUSED_SLOT; i < SLOT_COUNT; i++) {
         bytes memory slot = system.readSlot(i);
         eq(slot.length, DIRTY_FLAG.length, "sentinel length changed");
         eq(uint256(keccak256(slot)), uint256(keccak256(DIRTY_FLAG)), "sentinel value changed");
     }
+    return true;
 }
 ```
 
