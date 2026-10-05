@@ -210,7 +210,7 @@ abstract contract TargetFunctions is ManagersTargets, YourSystemTargets {
 
 | Shape | Placement | Checked |
 | --- | --- | --- |
-| global truth over public state | `invariant_*` in `Properties` | after every transaction under Medusa property mode |
+| global truth over public state | `invariant_*` in `Properties`, declared `returns (bool)` with no arguments | after every transaction under Medusa property mode |
 | transition over `_before` / `_after` | `property_*` in `Properties` | whenever called |
 | operation must never revert | `doomsday_*` handler in `targets/DoomsdayTargets.sol` | whenever called |
 

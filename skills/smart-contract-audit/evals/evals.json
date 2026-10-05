@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Audit this smart contract for all security vulnerabilities. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/ReentrantVault.sol",
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/ReentrantVault.sol",
       "expected_output": "Complete audit report identifying: reentrancy in withdraw(), missing access control on setOwner(), division-by-zero in distributeRewards() when totalDeposits==0, reward accounting bug in deposit(). Each Critical/High finding includes PoC attack code and a code fix snippet.",
       "files": ["evals/files/ReentrantVault.sol"],
       "assertions": [
@@ -20,7 +20,7 @@
     },
     {
       "id": 2,
-      "prompt": "Security audit this lending pool contract. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/LendingPool.sol",
+      "prompt": "Security audit this lending pool contract. File: evals/files/LendingPool.sol",
       "expected_output": "Complete audit report identifying: free liquidation bug (liquidate() zeroes debt without requiring repayment), oracle staleness (latestAnswer() no roundId/timestamp check), negative oracle price cast (int256 to uint256 wraps), decimal mismatch in _healthy() (collateral and debt amounts not normalized). Each High/Critical finding includes PoC and code fix.",
       "files": ["evals/files/LendingPool.sol"],
       "assertions": [
@@ -37,7 +37,7 @@
     },
     {
       "id": 3,
-      "prompt": "Is this contract safe? /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/ReentrantVault.sol",
+      "prompt": "Is this contract safe? evals/files/ReentrantVault.sol",
       "expected_output": "Even with terse prompt, auditor scopes immediately and surfaces at least reentrancy and setOwner access control bugs without asking clarifying questions first.",
       "files": ["evals/files/ReentrantVault.sol"],
       "assertions": [
@@ -51,7 +51,7 @@
     },
     {
       "id": 4,
-      "prompt": "Audit this smart contract for all security vulnerabilities. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/SigReplay.sol",
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/SigReplay.sol",
       "expected_output": "Complete audit report identifying: EIP-712 domain separator missing chainId (cross-chain replay), no nonce tracking (same-chain replay of same voucher), ecrecover does not validate v or reject malleable s (signature malleability), no zero-address check on recovered signer. Each Critical/High includes PoC and fix.",
       "files": ["evals/files/SigReplay.sol"],
       "assertions": [
@@ -68,7 +68,7 @@
     },
     {
       "id": 5,
-      "prompt": "Audit this smart contract for all security vulnerabilities. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/ERC4626Inflation.sol",
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/ERC4626Inflation.sol",
       "expected_output": "Complete audit report identifying: first-depositor inflation / donation share-price manipulation, totalAssets() derived from balanceOf(this) is donatable, previewWithdraw rounds same direction as previewDeposit (should round up for withdraw), missing maxDeposit or dead-shares mitigation. Each High/Critical includes PoC and fix.",
       "files": ["evals/files/ERC4626Inflation.sol"],
       "assertions": [
@@ -85,7 +85,7 @@
     },
     {
       "id": 6,
-      "prompt": "Audit this smart contract for all security vulnerabilities. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/MerkleAirdrop.sol",
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/MerkleAirdrop.sol",
       "expected_output": "Complete audit report identifying: no claimed-tracking (unlimited replay of same proof drains token balance), leaf omits amount so recipient can claim arbitrary amount, admin can rotate root at any time (no finalization / can redirect funds), MerkleProof verify vulnerable to second-preimage if leaf format collides with internal nodes.",
       "files": ["evals/files/MerkleAirdrop.sol"],
       "assertions": [
@@ -102,7 +102,7 @@
     },
     {
       "id": 7,
-      "prompt": "Audit this smart contract for all security vulnerabilities. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/Bridge.sol",
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/Bridge.sol",
       "expected_output": "Complete audit report identifying: _lzReceive ignores _srcChainId (wrong-chain messages accepted), no per-source nonce / replay protection, mint() is public so anyone can mint tokens independent of bridge, trustedRemote comparison only covers single path (no per-chain mapping).",
       "files": ["evals/files/Bridge.sol"],
       "assertions": [
@@ -119,7 +119,7 @@
     },
     {
       "id": 8,
-      "prompt": "Audit this smart contract for all security vulnerabilities. File: /Users/farrell/.claude-personal/skills/smart-contract-audit/evals/files/GovTimelock.sol",
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/GovTimelock.sol",
       "expected_output": "Complete audit report identifying: execute() bypasses delay when msg.sender == admin (admin executes arbitrary calls instantly), cancel() has no access control (anyone cancels any queued action), queue id uses abi.encodePacked (hash collisions across variable-length data), no guardian / veto role.",
       "files": ["evals/files/GovTimelock.sol"],
       "assertions": [
@@ -131,6 +131,62 @@
         "Provides a Proof of Concept for at least one Critical/High finding",
         "Provides a corrected code snippet (abi.encode, access-controlled cancel, remove admin fast-path)",
         "Anchors findings to checklist item IDs (SOL-XX-YY-N format)",
+        "Report includes Scope, Findings, and Recommendations sections"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Audit this smart contract for all security vulnerabilities. File: evals/files/RouterArbitraryCall.sol",
+      "expected_output": "Complete audit report identifying: arbitrary external call in _swap() (caller-chosen target + data) lets anyone spend victims' standing approvals to the router via token.transferFrom; msg.value reused across multiSwap() iterations so one payment funds N native swaps out of the router's ETH balance; sweep() is unprotected so anyone takes leftover tokens/ETH; minAmountOut is checked against the target's return value instead of the receiver's tokenOut balance delta. Each Critical/High finding includes PoC and code fix.",
+      "files": ["evals/files/RouterArbitraryCall.sol"],
+      "assertions": [
+        "Finds arbitrary call in _swap(): target and data are caller-controlled, so an attacker sets target = a token victims approved to the router and data = transferFrom(victim, attacker, amount); the router is msg.sender, so the call spends victims' approvals (tokenIn can be any token with amountIn = 0, and the bool return decodes as amountOut = 1, passing minAmountOut = 0)",
+        "Finds msg.value reuse in multiSwap(): every _swap() iteration checks msg.value >= amountIn against the same msg.value and forwards amountIn from the router's own ETH balance, so one payment funds N native swaps and drains ETH held by the router",
+        "Finds sweep() has no access control: any address withdraws every token and ETH balance held by the router (input left over when the target pulls less than amountIn, refunds sent to receive(), mis-sent funds)",
+        "Finds the slippage check trusts the target's return value: minAmountOut is compared to abi.decode(ret) instead of the receiver's tokenOut balance delta, so a malicious or misrouted target, calldata that sends output elsewhere, or a fee-on-transfer tokenOut (weird-erc20 catalog B1) passes the check while the receiver gets less or nothing",
+        "Classifies the arbitrary-call approval drain as Critical",
+        "Classifies msg.value reuse in multiSwap() as High or Critical",
+        "Provides a Proof of Concept (attack steps or Foundry test) where the attacker calls swap() with target = a victim-approved token and data = transferFrom(victim, attacker, amount)",
+        "Provides a corrected code snippet for at least one finding (target allowlist that excludes tokens or a call adapter holding no approvals; per-call value accounting with a total == msg.value check; receiver balance-delta slippage check; access-controlled or removed sweep with approval reset to 0)",
+        "Anchors findings to checklist item IDs (SOL-XX-YY-N or AUD-<Area>-N format)",
+        "Report includes Scope, Findings, and Recommendations sections"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Audit this smart contract for all security vulnerabilities, including the planned V2 upgrade. File: evals/files/UpgradeableVault.sol",
+      "expected_output": "Complete audit report identifying: V1 _authorizeUpgrade() has no access control (anyone upgrades the proxy); reinitializer uses `_initialized <= version` so initialize() can be called again on the proxy and the owner/asset reset; the V1 implementation never disables initializers, so anyone can initialize and operate the implementation directly (selfdestruct-bricking only where EIP-6780 does not apply); UpgradeableVaultV2 inserts withdrawFeeBps before existing variables, shifting every later slot. Each Critical/High includes PoC and fix.",
+      "files": ["evals/files/UpgradeableVault.sol"],
+      "assertions": [
+        "Finds UpgradeableVault._authorizeUpgrade() is an empty override with no access control: any address calls upgradeToAndCall() on the proxy, points it at an attacker implementation, and takes the vault's assets",
+        "Finds the reinitializer bug: the modifier requires `_initialized <= version` instead of `<`, so initialize() (reinitializer(1)) can be called again on the proxy; an attacker resets owner and asset (e.g. initialize(junkToken, attacker) then rescue(realAsset, ...) passes the `token != asset` guard), and initializeV2() is likewise re-callable",
+        "Finds the V1 implementation has no constructor calling _disableInitializers(): anyone can call initialize() on the implementation contract itself and own it",
+        "States the implementation-takeover impact accurately: because upgradeToAndCall() has no onlyProxy guard, an attacker can delegatecall a SELFDESTRUCT payload from the implementation, which deletes the implementation and bricks every proxy only where SELFDESTRUCT still removes code (pre-Cancun / chains without EIP-6780); under EIP-6780 the code survives and the impact is limited to the implementation's own storage and balance — the report does not claim proxy bricking on post-Cancun Ethereum",
+        "Finds the V2 storage-layout collision: withdrawFeeBps is inserted before owner/asset/totalShares/sharesOf, so every later variable reads the slot of its V1 predecessor (initializeV2 overwrites the stored asset, owner reads the old totalShares, asset and sharesOf read empty slots), freezing deposits",
+        "Classifies the missing _authorizeUpgrade access control or the re-initialization bug as Critical",
+        "Provides a Proof of Concept (attack steps or Foundry test) for the unauthorized upgrade or the re-initialization owner takeover",
+        "Provides a corrected code snippet (onlyOwner in _authorizeUpgrade; `_initialized < version`; constructor calling _disableInitializers(); new V2 variables appended after existing ones or moved to ERC-7201 namespaced storage)",
+        "Anchors findings to checklist item IDs (SOL-XX-YY-N or AUD-<Area>-N format)",
+        "Report includes Scope, Findings, and Recommendations sections"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Audit this lending market before its Arbitrum One launch. File: evals/files/L2OracleConsumer.sol",
+      "expected_output": "Complete audit report identifying: no Chainlink L2 sequencer uptime check and no post-restart grace period; one hardcoded STALENESS_THRESHOLD for feeds with different heartbeats; answeredInRound check gives no freshness protection; no handling of aggregator minAnswer/maxAnswer clamping; feed decimals assumed to be 8 (and USD denomination assumed) in collateralValue(); interest accrual keyed to block.number, which on Arbitrum is an approximate L1 block number, with BLOCKS_PER_YEAR sized for L2 blocks. Each High/Critical includes PoC and fix.",
+      "files": ["evals/files/L2OracleConsumer.sol"],
+      "assertions": [
+        "Finds missing L2 sequencer uptime check: getPrice() never reads the Chainlink sequencer uptime feed (answer 1 = down), so while the sequencer is down prices freeze and only delayed-inbox users can act",
+        "Finds missing grace period: after the sequencer comes back up (startedAt), there is no GRACE_PERIOD wait, so liquidations and borrows execute immediately against prices users had no chance to react to",
+        "Finds the single hardcoded STALENESS_THRESHOLD (1 hours) applied to every feed: feeds with a longer heartbeat revert between updates (borrow/withdraw/liquidate DoS), and one value cannot match faster feeds; recommends a per-feed heartbeat configured at listAsset()",
+        "Notes that `answeredInRound >= roundId` provides no freshness protection (answeredInRound is deprecated in Chainlink OCR feeds) and does not propose it as the staleness fix",
+        "Finds no minAnswer/maxAnswer circuit-breaker handling: on a feed whose aggregator still enforces bounds, a crash below minAnswer reports the floor price and overvalues collateral (LUNA, May 2022); recommends verifying each feed's bounds and rejecting answers at the bound or using a fallback oracle",
+        "Finds feed decimals assumed to be 8: collateralValue() and liquidate() hardcode 1e10 and ignore feed.decimals(), while listAsset() accepts any feed (e.g. an 18-decimal ETH-denominated wstETH/ETH feed), mispricing collateral by orders of magnitude and in the wrong unit",
+        "Finds block.number-based interest accrual is wrong on Arbitrum: block.number returns an approximate L1 block number (advancing about every 12s), not the ~0.25s L2 block assumed by BLOCKS_PER_YEAR, so interest accrues roughly 48x slower than 5% APR and in jumps; recommends block.timestamp-based accrual",
+        "Classifies the missing sequencer/grace-period check or the decimals assumption as High",
+        "Provides a Proof of Concept (attack steps or Foundry test with mock feeds) for at least one High finding",
+        "Provides a corrected getPrice() snippet with sequencer status + grace period check, per-feed staleness, and feed-decimals normalization",
+        "Anchors findings to checklist item IDs (SOL-XX-YY-N or AUD-<Area>-N format)",
         "Report includes Scope, Findings, and Recommendations sections"
       ]
     }

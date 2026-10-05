@@ -72,9 +72,11 @@ cd "<rootDir>" && forge inspect <Contract> storage-layout --json
 
 The audit checklist is vendored at `skill://smart-contract-audit/references/`.
 
-1. `read` `skill://smart-contract-audit/references/INDEX.md`. It lists every category with its item count and reference file.
-2. Select the categories that match the scope you found in Step 1 (for example: a vault protocol pulls `defi.md`, `token.md`, `basics.md`, `external-call.md`; a bridge pulls `multi-chain-cross-chain.md`, `signature.md`, `hash-merkle-tree.md`).
-3. `write` `.sc-audit/raw/checklist.json` as the manifest downstream phases resolve against:
+1. `read` `skill://smart-contract-audit/references/INDEX.md`. It lists every checklist category with its item count and reference file, then the protocol playbooks and the token catalog.
+2. Select the categories that match the scope you found in Step 1 (for example: a vault protocol pulls `defi.md`, `token.md`, `basics.md`, `external-call.md`; a bridge pulls `multi-chain-cross-chain.md`, `signature.md`, `hash-merkle-tree.md`; anything behind a proxy pulls `upgradeability.md`).
+3. Classify the protocol into every playbook type whose "Load when" line in INDEX matches the code. A router that swaps and bridges is both `amm-dex` and `aggregators-routers`. Record the playbooks in the manifest; their bug classes are the protocol-specific hypotheses HUNT works from.
+4. Set `weird_erc20` to the catalog path when in-scope code moves an ERC-20 whose address is user-supplied, governance-listed, or an external dependency; set it to `null` when the only tokens are the protocol's own fixed contracts.
+5. `write` `.sc-audit/raw/checklist.json` as the manifest downstream phases resolve against:
 
 ```json
 {
@@ -82,11 +84,15 @@ The audit checklist is vendored at `skill://smart-contract-audit/references/`.
   "categories": [
     { "category": "<name from INDEX>", "file": "skill://smart-contract-audit/references/<file>.md", "item_count": "<number>", "in_scope": "<boolean>" }
   ],
+  "playbooks": [
+    { "type": "<playbook name from INDEX>", "file": "skill://smart-contract-audit/references/playbooks/<file>.md", "reason": "<code shape that matched>" }
+  ],
+  "weird_erc20": "skill://smart-contract-audit/references/weird-erc20.md | null",
   "total_items": "<number>"
 }
 ```
 
-Set `checklist.loaded = true` and `checklist.itemCount = total_items`. When `INDEX.md` is unreadable, write `{}`, set `loaded = false`, and add a warning.
+Set `checklist.loaded = true`, `checklist.itemCount = total_items`, and `checklist.playbooks` to the playbook names. When `INDEX.md` is unreadable, write `{}`, set `loaded = false`, and add a warning.
 
 ### Step 7 — Evaluate tool availability
 
@@ -157,7 +163,8 @@ Return the `SetupSummary` JSON. `topFindings` caps at 20 per tool; the full arra
   },
   "checklist": {
     "loaded": "<boolean>",
-    "itemCount": "<number>"
+    "itemCount": "<number>",
+    "playbooks": ["<string>"]
   },
   "warnings": ["<string>"]
 }

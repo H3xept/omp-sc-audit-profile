@@ -148,7 +148,7 @@ When unsure, default to the Foundry PoC — it is the most general.
 
 #### 7b — ATTEMPT the chosen method
 
-**Foundry PoC.** Write the scaffold yourself to `<rootDir>/.sc-audit/pocs/<sanitized-hotspot-id>_poc.t.sol` (non-alphanumeric characters in the id become `_`), in this shape:
+**Foundry PoC.** Write the scaffold yourself to `<rootDir>/.sc-audit/pocs/<sanitized-hotspot-id>_poc.t.sol` (non-alphanumeric characters in the id become `_`), in the shape below. When the bug class has a template in `skill://test-foundry/references/exploit-poc.md` (reentrancy, inflation, oracle manipulation, signature replay, approval drain, initializer takeover, griefing, rounding amplification) or needs a fork or a flash loan, start from that template:
 
 ```solidity
 // SPDX-License-Identifier: MIT

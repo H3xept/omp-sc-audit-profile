@@ -26,7 +26,7 @@ The tools this lane needs:
 | `grep` | Pattern sweeps for token, approval, and oracle call sites across scope |
 | `glob` | Locating token/oracle interfaces, mocks, and deployment configuration |
 | `web_search` | Public audit-report precedent for an already-anchored bug family |
-| `write` | Exactly one file: this lane's checkpoint |
+| `write` | This lane's checkpoint, plus `.sc-audit/weird-tokens.md` when Pattern 3 runs |
 
 Checklist material: `.sc-audit/raw/checklist.json` holds the machine-readable items; the vendored Cyfrin checklist references in `skill://smart-contract-audit` hold the long-form entries for token, oracle, and integration categories.
 
@@ -97,20 +97,16 @@ Identify all token transfer operations and evaluate whether the protocol account
 
 This overlaps `skill://audit-pipeline/assets/prompts/hunt-callback-liveness.md` — that lane owns the liveness implications; this lane owns the token-specific assumptions.
 
-### Pattern 3 — Fee-on-Transfer and Rebasing Token Assumptions
+### Pattern 3 — Non-Standard Token Behavior (Weird-ERC20 matrix)
 
-Scan for token interaction patterns that assume `transfer(to, amount)` delivers exactly `amount` to the recipient:
+When `checklist.json` sets `weird_erc20`, `read` that catalog. It is the authority on non-standard token behavior: stable IDs A1–J4, the applicability predicate per ID, and the SUPPORT / REJECT-SAFE oracle each reachable row must satisfy.
 
-- **Fee-on-transfer tokens**: Tokens like USDT (in fee mode), PAXG, and others deduct a fee on every transfer. If the protocol records `amount` as the received quantity without checking the actual balance change, accounting diverges from reality.
-  - Check: Does the protocol measure `balanceOf(this)` before and after receiving tokens?
-  - Check: Does documentation/comments state which token types are supported?
-- **Rebasing tokens**: Tokens like stETH and AMPL change balances automatically. If the protocol caches a balance and uses it later, the cached value may be stale.
-  - Check: Does the protocol use wrapped versions (e.g., wstETH instead of stETH)?
-  - Check: Are balance snapshots taken and used within the same transaction?
-- **Tokens with blacklists**: USDC and USDT can blacklist addresses. If the protocol's contract address is blacklisted, all transfers fail permanently.
-  - Check: Is there an emergency withdrawal path that does not depend on the primary token transfer?
+1. **Token-surface inventory.** For every custody path, trace entry point → transfer primitive (`transfer`, `safeTransferFrom`, `permit`, wrapper library) → accounting basis (requested amount, balance delta, shares, cached balance) → state/call order. Grep finds candidates; only the traced path is evidence.
+2. **Documented policy.** Read the protocol's stated token scope (README, docs, listing rules, NatSpec). That statement decides SUPPORT, REJECT-SAFE, or TRUST-ASSUMPTION per family. Where the documents are silent and listing is permissionless, the family is REJECT-SAFE: a fault must be contained.
+3. **Disposition matrix.** One row per catalog ID with its disposition and evidence, written to `<rootDir>/.sc-audit/weird-tokens.md` (the one file besides your checkpoint that this lane writes).
+4. **Hotspots.** Emit a hotspot for every TEST row whose oracle the traced code appears to violate — for example a B1 path that credits the requested amount, a C1 path that re-approves without resetting, a D4 path where one blocklisted recipient freezes every user's withdrawal, or an F1 sweep guarded only by an address comparison. Put the catalog ID in the title and in an `evidence` entry (`"source": "weird_erc20:<ID>"`). A TRUST-ASSUMPTION row that permissionless listing can violate is a `low`-priority hotspot of its own.
 
-For each token interaction, classify the assumption made and verify it holds for the documented token scope.
+When `weird_erc20` is `null`, still check fee-on-transfer (B1), rebasing (B3–B6), and blocklist (D4) assumptions for every external token the code names.
 
 ### Pattern 4 — Oracle Freshness and Manipulation
 
